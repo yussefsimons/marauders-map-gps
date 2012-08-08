@@ -9,7 +9,7 @@ const int CellLED = 8;
 const int GPSLED = 9;
 
 //GPS Setup
-SoftwareSerial GPS(11, 12); // RX, TX (TX not used)
+SoftwareSerial GPS(12, 11); // RX, TX (TX not used)
 const int sentenceSize = 80;
 char sentence[sentenceSize];
 
@@ -27,25 +27,17 @@ void setup() {
 
 void loop()
 {
-  static int i = 0;
-  if (GPS.available())
-  {
-    char ch = GPS.read();
-    if (ch != '\n' && i < sentenceSize)
-    {
-      sentence[i] = ch;
-      i++;
-    }
-    else
-    {
-     sentence[i] = '\0';
-     i = 0;
-     displayGPS();
-    }
+  if(GPS.available()) {
+    Serial.write(GPS.read());
   } else {
     Serial.print("Not Ready...\n");
+    delay(400);
   }
-    delay(500);
+
+  if(Serial.available())
+    GPS.write(Serial.read());
+  
+  delay(50);
 }
 
 void SetStatusLED(boolean OK) {
