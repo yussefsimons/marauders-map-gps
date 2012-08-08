@@ -30,7 +30,7 @@ void loop()
   static int i = 0;
   if (GPS.available())
   {
-    char ch = gpsSerial.read();
+    char ch = GPS.read();
     if (ch != '\n' && i < sentenceSize)
     {
       sentence[i] = ch;
@@ -42,7 +42,10 @@ void loop()
      i = 0;
      displayGPS();
     }
+  } else {
+    Serial.print("Not Ready...\n");
   }
+    delay(500);
 }
 
 void SetStatusLED(boolean OK) {
@@ -61,10 +64,10 @@ void displayGPS()
   getField(field, 0);
   if (strcmp(field, "$GPRMC") == 0)
   {
-    Serial.print("NEMA: ");
+    Serial.print("\nNEMA: ");
     Serial.print(sentence);
     
-    Serial.print("Lat: ");
+    Serial.print("\nLat: ");
     getField(field, 3);  // number
     Serial.print(field);
     getField(field, 4); // N/S
