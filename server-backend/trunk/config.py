@@ -110,11 +110,19 @@ def configure(rehash="NO"):
                         if rehash == "NO":
                             print "*** FATAL: quitting ***"
                         return "Error"
-
+	    elif option == "MySQL_table":
+                if "MySQL_table" in defined:
+                    print "*** CONFIG PARSE ERROR ON LINE " + str(linenumber) + " ***"
+                    print "*** MySQL_table already defined, using earlier definition ***"
+                else:
+                    try:
+                        defined["MySQL_table"] = line.split("=")[1].strip().split("##")[0].strip()
                     except IndexError:
                         print "*** CONFIG PARSE ERROR ON LINE " + str(linenumber) + " ***"
-                        print "*** No arguments for option mod_SiteAdminTools, using default (FALSE) ***"
-			defined["mod_SiteAdminTools"] = "FALSE"
+                        print "*** No arguments for option MySQL_table ***"
+                        if rehash == "NO":
+                            print "*** FATAL: quitting ***"
+                        return "Error"
 	    else:
                 print "*** CONFIG PARSE ERROR ON LINE " + str(linenumber) + " ***"
                 print "*** Unknown option: " + option + " ***"
@@ -154,6 +162,12 @@ def configure(rehash="NO"):
     if "MySQL_db" not in defined.keys():
         print "*** CONFIG PARSE ERROR ***"
         print "*** No MySQL_db defined ***"
+        if rehash == "NO":
+            print "*** FATAL: quitting ***"
+        return "Error"
+    if "MySQL_table" not in defined.keys():
+        print "*** CONFIG PARSE ERROR ***"
+        print "*** No MySQL_table defined ***"
         if rehash == "NO":
             print "*** FATAL: quitting ***"
         return "Error"
