@@ -5,9 +5,10 @@
 
 #define GPS_RX 12
 #define GPS_TX 11
-#define CELL_RX 18
-#define CELL_TX 19
 #define BUFFER_SIZE 90
+//Button Pins
+#define INTERUPT_BTN 13
+#define DISABLE_BTN 10
 //LED Pins
 #define GPS_LED_R 17
 #define GPS_LED_G 16
@@ -57,13 +58,14 @@ char atbuff_idx;
 //PString myString(buffer,sizeof(buffer));
 
 int firstLoop = 1;
+int isDisabled = 0;
 
 void setup() {
   Serial.begin(9600);
   GPSSerial.begin(9600);
   Serial1.begin(9600);
   
-  // set the digital pin as output:
+  //Set LED Pins (Output)
   pinMode(GPS_LED_R, OUTPUT);
   pinMode(GPS_LED_G, OUTPUT);
   pinMode(CELL_LED_R, OUTPUT);
@@ -71,6 +73,11 @@ void setup() {
   pinMode(STATUS_LED_R, OUTPUT);
   pinMode(STATUS_LED_G, OUTPUT);
   
+  //Set button pins
+  pinMode(DISABLE_BTN, INPUT);
+  pinMode(INTERUPT_BTN, INPUT);
+  
+  //Set LEDs to initial state
   STL_Blink(GRN, 0);
   COML_Blink(RED, 0);
   ToggleGLL(RED);
@@ -81,6 +88,15 @@ void setup() {
 
 void loop()
 {
+  while(digitalRead(INTERUPT_BTN) > 0) {
+    delay(500);
+    STL_Blink(OFF, 0);
+    ToggleSTL(RED);
+    COML_Blink(OFF, 0);
+    ToggleCOML(OFF);
+    GLL_Blink(OFF, 0);
+    ToggleGLL(OFF);
+  }
   
   /*
   long lat, lon;
