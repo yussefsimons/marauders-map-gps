@@ -47,7 +47,6 @@ char sentence[sentenceSize];
 TinyGPS GPS;
 
 //GSM/GPRS Sheild Setup (SM5100B)
-SoftwareSerial CellSerial(CELL_RX, CELL_TX);
 char recd_char = 0;
 char buffer[60];
 int GPRS_Registered = 0;
@@ -62,7 +61,7 @@ int firstLoop = 1;
 void setup() {
   Serial.begin(9600);
   GPSSerial.begin(9600);
-  CellSerial.begin(9600);
+  Serial1.begin(9600);
   
   // set the digital pin as output:
   pinMode(GPS_LED_R, OUTPUT);
@@ -118,22 +117,21 @@ void loop()
     
     while (GPRS_Registered == 0 || GPRS_AT_Ready == 0) {
       GetATString();
-      Serial.println(atbuff);
       ATStringHandler();
       LEDBlinker();
     }
     
     Serial.println("Setting up PDP Context");
-    CellSerial.println("AT+CGDCONT=1,\"IP\",\"isp.cingular\"");
+    Serial1.println("AT+CGDCONT=1,\"IP\",\"isp.cingular\"");
     delay(1000);
     Serial.println("Activating PDP Context");
-    CellSerial.println("AT+CGACT=1,1");
+    Serial1.println("AT+CGACT=1,1");
     delay(1000);
     Serial.println("Configuring TCP connection to TCP Server");
-    CellSerial.println("AT+SDATACONF=1,\"TCP\",\"\",");
+    Serial1.println("AT+SDATACONF=1,\"TCP\",\"\",");
     delay(1000);
     Serial.println("Starting TCP Connection\n");
-    CellSerial.println("AT+SDATASTART=1,1");
+    Serial1.println("AT+SDATASTART=1,1");
   
   } else {
     Serial.println("Looping...");
@@ -148,11 +146,12 @@ void GetATString(void) {
  
   char c;
   atbuff_idx = 0; // start at begninning
-  if(CellSerial.available() > 0) {
+  if(Serial1.available() > 0) {
     while (1) {
-      c = CellSerial.read();
+      c = Serial1.read();
       if (c == -1) {
         atbuff[atbuff_idx] = '\0';
+        Serial.println(atbuff);
         return;
       }
   
@@ -161,6 +160,7 @@ void GetATString(void) {
       }
       if ((atbuff_idx == BUFFER_SIZE - 1) || (c == '\r')){
         atbuff[atbuff_idx] = '\0';
+        Serial.println(atbuff);
         return;
       }
  
