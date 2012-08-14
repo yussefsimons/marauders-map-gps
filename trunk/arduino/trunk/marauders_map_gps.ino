@@ -118,6 +118,7 @@ void loop()
     
     while (GPRS_Registered == 0 || GPRS_AT_Ready == 0) {
       GetATString();
+      Serial.println(atbuff);
       ATStringHandler();
       LEDBlinker();
     }
@@ -147,8 +148,8 @@ void GetATString(void) {
  
   char c;
   atbuff_idx = 0; // start at begninning
-  while (1) {
-    if(CellSerial.available() > 0) {
+  if(CellSerial.available() > 0) {
+    while (1) {
       c = CellSerial.read();
       if (c == -1) {
         atbuff[atbuff_idx] = '\0';
@@ -166,7 +167,6 @@ void GetATString(void) {
       atbuff[atbuff_idx++]= c;
     }
   }
-  Serial.println(atbuff);
 }
 
  
