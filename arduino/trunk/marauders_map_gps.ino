@@ -279,7 +279,7 @@ void GLL_Blink(int doBlink, long blinkInterval) { // (0 = NoBlink/1 = Blink Gree
 }
 
 void STL_Blink(int doBlink, long blinkInterval) { // (0 = NoBlink/1 = Blink, 0 = Default/DisableOnly) 
-    ToggleSTL(ON); // Set LED to the default state
+    ToggleSTL(OFF); // Set LED to the default state
     STL_doBlink = doBlink; // Set the global variable(s)
     STL_prevBlink = 0; // "
     
@@ -314,7 +314,7 @@ void ToggleGLL(int state) {
     digitalWrite(GPS_LED_R, LOW);
     digitalWrite(GPS_LED_G, LOW);
   }
-  COML_curState = state; 
+  GLL_curState = state; 
 } 
   
 void ToggleSTL(int state) {
@@ -328,7 +328,7 @@ void ToggleSTL(int state) {
     digitalWrite(STATUS_LED_R, LOW);
     digitalWrite(STATUS_LED_G, LOW);
   }
-  COML_curState = state; 
+  STL_curState = state; 
 } 
 
 void ToggleCOML(int state) {
