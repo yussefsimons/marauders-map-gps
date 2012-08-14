@@ -88,6 +88,9 @@ void setup() {
 
 void loop()
 {
+  float lat, lon, alt, speed, course;
+  unsigned long fix_age, time, date;// process new gps info here
+  
   while(digitalRead(INTERUPT_BTN) > 0) {
     delay(500);
     STL_Blink(OFF, 0);
@@ -97,36 +100,6 @@ void loop()
     GLL_Blink(OFF, 0);
     ToggleGLL(OFF);
   }
-  
-  /*
-  long lat, lon;
-  unsigned long fix_age, time, date;// process new gps info here
-  //static int i = 0;
-  if(GPSSerial.available()) {  
-    int c = GPSSerial.read();
-    if (GPS.encode(c))
-    {
-      // retrieves +/- lat/long in 100000ths of a degree
-      GPS.get_position(&lat, &lon, &fix_age);
-
-      // time in hhmmsscc, date in ddmmyy
-      GPS.get_datetime(&date, &time, &fix_age);
-      
-      float alt = GPS.f_altitude();
-      
-      char buf[50];
-      sprintf(buf, "Latitude: %lu", lat);
-      Serial.println(buf);
-      sprintf(buf, "Longitude: %lu", lon);
-      Serial.println(buf);
-      Serial.print("Altitude: ");
-      Serial.print(alt);
-      Serial.print("\n");
-      delay(25);
-    }
-  } 
-  */
-  
   
   if(firstLoop > 0) {
     firstLoop = 0;
@@ -139,19 +112,81 @@ void loop()
     
     Serial.println("Setting up PDP Context");
     Serial1.println("AT+CGDCONT=1,\"IP\",\"isp.cingular\"");
+    LEDBlinker();
     delay(1000);
     Serial.println("Activating PDP Context");
     Serial1.println("AT+CGACT=1,1");
+    LEDBlinker();
     delay(1000);
     Serial.println("Configuring TCP connection to TCP Server");
     Serial1.println("AT+SDATACONF=1,\"TCP\",\"\",");
+    LEDBlinker();
     delay(1000);
     Serial.println("Starting TCP Connection\n");
     Serial1.println("AT+SDATASTART=1,1");
+    LEDBlinker();
   
   } else {
-    Serial.println("Looping...");
-    delay(50); 
+    
+    if(GPSSerial.available()) {  
+      int c = GPSSerial.read();
+      if (GPS.encode(c))
+      {
+        GPS.f_get_position(&lat, &lon, &fix_age);
+        
+        if (fix_age == TinyGPS::GPS_INVALID_AGE) {
+          Serial.println("No fix detected");
+          GLL_Blink(OFF, 0);
+          ToggleGLL(RED);
+        } else if (fix_age > 5000) {
+          Serial.println("Warning: possible stale data!");
+          GLL_Blink(RED, 0);
+        } else {
+          Serial.println("Data is current.");
+          GLL_Blink(OFF, 0);
+          ToggleGLL(GRN);
+          STL_Blink(OFF, 0);
+          ToggleSTL(GRN);
+        }
+
+        // time in hhmmsscc, date in ddmmyy
+        GPS.get_datetime(&date, &time, &fix_age);
+      
+        alt = GPS.f_altitude();
+        speed = GPS.f_speed_mph();
+        /*
+        Serial.print("Latitude: ");
+        Serial.print(lat);
+        delay(25);
+        Serial.print("\n");
+        Serial.print("Longitude: ");
+        delay(25);
+        Serial.print(lon);
+        Serial.print("\n");
+        delay(25);
+        Serial.print("Altitude: ");
+        Serial.print(alt);
+        Serial.print("\n");
+        delay(25);
+        Serial.print("Speed: ");
+        Serial.print(speed);
+        delay(25);
+        Serial.print("\n");
+        Serial.print("Time: ");
+        delay(25);
+        Serial.print(time);
+        Serial.print("\n");
+        delay(25);
+        Serial.print("Date: ");
+        Serial.print(date);
+        Serial.print("\n");
+        delay(25);
+        */
+      }
+    } else {
+      //Serial.println("Looping...");
+      delay(50); 
+    }
   }
   LEDBlinker();
 }
