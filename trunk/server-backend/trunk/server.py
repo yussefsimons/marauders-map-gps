@@ -1,11 +1,11 @@
 #!/bin/python
-import socket, MySQLdb, shelve, threading, socket, shutil
+import socket, MySQLdb, shelve, threading, socket, shutil, time, datetime
 import config
 
 RecvBuffer = 80
 
 ## Validate config file
-config_response = botconfig.configure()
+config_response = config.configure()
 if config_response != "Error":
     print "*** Config read OK ***"
     conf = shelve.open(".config")
@@ -19,8 +19,8 @@ else:
 config = shelve.open(".config")
 
 dbTable = config["MySQL_table"]
-ListenerHost = config["ListenerHost"]
-ListenerPort = int(config["ListenerPort"])
+ListenerHost = config["ServerIP"]
+ListenerPort = int(config["ServerPort"])
 
 ###############################################################################################
 ###############################################################################################
@@ -46,10 +46,10 @@ class Listener(threading.Thread):
  
     def run(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     	server_socket.bind((ListenerHost, ListenerPort))
     	server_socket.listen(5)
-    	print "-> Listener for client connection... " + str(ListenerPort)
+    	print "-> Listening for client connection... "
 
     	while self.running:
 	    client_socket, address = server_socket.accept()
@@ -58,19 +58,21 @@ class Listener(threading.Thread):
 	    client_socket.close()
 	    try:
 	    	#self.connection.send_raw(data)
-	    	tid,lat,lon,alt,speed,time = data.split("|")
-		print "\nGot Tracker (ID: " + tid + ") Data:"
+	    	tid,lat,lon,alt,speed,ttime = data.split("|")
+		print "\nGot Tracker (ID: " + str(tid) + ") Data:"
 		print " - Latitude: " + lat
 		print " - Longitude: " + lon
 		print " - Altitude: " + alt
 		print " - Speed: " + speed	
-		print " - Time: " + time	  
+		print " - Time: " + ttime
+		t = datetime.date.today()
+		now = datetime.datetime(t.year, t.month, t.day, int(ttime[0:2]), int(ttime[2:4]), int(ttime[4:6]), 0)
 		#lat = float(lat)
 		#lon = float(lon)
 		#alt = float(alt)
 		#speed = float(speed)
 		SQL = mysql()
-		SQL.execute("INSERT INTO tracker (id, lat, lon, alt, speed, time) VALUES (" + tid + "," + lat + "," + lon + "," + alt + "," + speed + "," + datetime.strftime('%Y-%m-%d %H:%M:%S') + ")")
+		SQL.execute("INSERT INTO " + dbTable + " (id, lat, lon, alt, speed, time) VALUES (" + tid + "," + lat + "," + lon + "," + alt + "," + speed + ",'" + now.strftime('%Y-%m-%d %H:%M:%S') + "')")
 		SQL.close();
 	    except socket.error, e:
 		print "*** Socket Error: %d: %s ***" % (e.args[0], e.args[1])
@@ -139,14 +141,14 @@ def dbVal(s): # Protect against MySQL injection attacks
     s = ''.join([ c for c in s if c not in ('\'','\x1a','\r','\n','\"','\x00', '\\')])
     return s
 
-if __name__ == '__main__':
-    threadListener = Listener() # Define the listener thread
-    conf = shelve.open(".config")
-    try:
-        while True: time.sleep(100)
-    except (KeyboardInterrupt, SystemExit): # Wait for a keyboard interupt
-        print "\n*** Received keyboard interrupt, quitting threads ***"
-        threadListener.stop() # Stop the thread
-        sys.exit(0)
+threadListener = Listener() # Define the listener thread
+conf = shelve.open(".config")
+try:
+    threadListener.start()
+    while True: time.sleep(100)
+except (KeyboardInterrupt, SystemExit): # Wait for a keyboard interupt
+    print "\n*** Received keyboard interrupt, quitting threads ***"
+    threadListener.stop() # Stop the thread
+    sys.exit(0)
 
 
