@@ -72,24 +72,12 @@ void setup() {
   pinMode(STATUS_LED_R, OUTPUT);
   pinMode(STATUS_LED_G, OUTPUT);
   
-  ToggleGLL(RED);
-  ToggleSTL(RED);
-  ToggleCOML(RED);
-  delay(1500);
-  ToggleGLL(GRN);
-  ToggleSTL(GRN);
-  ToggleCOML(GRN);
-  delay(1500);
-  ToggleCOML(OFF);
-  ToggleGLL(OFF);
-  ToggleSTL(OFF);
-  
   STL_Blink(GRN, 0);
   COML_Blink(RED, 0);
   ToggleGLL(RED);
 
   Serial.println("Finished setup...");
-  delay(5000);
+  delay(10);
 }
 
 void loop()
