@@ -1,27 +1,50 @@
 #include <SoftwareSerial.h>
 #include <string.h>
-//#include <TinyGPS.h>
+#include <TinyGPS.h>
 #include <PString.h>
 
 #define GPS_RX 12
 #define GPS_TX 11
-#define CELL_RX 2
-#define CELL_TX 3
+#define CELL_RX 18
+#define CELL_TX 19
 #define BUFFER_SIZE 90
-
 //LED Pins
-const int StatusLEDRed = 4;
-const int StatusLEDGreen= 5;
-const int LowBattLED = 6;
-const int ActivityLED = 7;
-const int CellLED = 8;
-const int GPSLED = 9;
+#define GPS_LED_R 17
+#define GPS_LED_G 16
+#define CELL_LED_R 15
+#define CELL_LED_G 14
+#define STATUS_LED_R 21
+#define STATUS_LED_G 20
+#define ON HIGH
+#define OFF LOW
+#define RED 1
+#define GRN 2
+
+//LEDs
+// GLL == GPSLockLED
+int GLL_curState = LOW; // Current LED state (default startup state)
+long GLL_prevBlink = 0; // The last time the LED was updated (blinked)
+long GLL_blinkInterval = 1000; // The ammount of time (in milliseconds) between blinks
+int GLL_doBlink = 0; // <1 == Don't blink, >0 == Blink
+
+// STL == StatusLED
+int STL_curState = HIGH; // Current LED state (default startup state)
+long STL_prevBlink = 0; // The last time the LED was updated (blinked)
+long STL_blinkInterval = 1000; // The ammount of time (in milliseconds) between blinks
+int STL_doBlink = 0; // <1 == Don't blink, >0 == Blink
+
+// COML == CommCellStatusLED
+int COML_curState = LOW; // Current LED state (default startup state)
+long COML_prevBlink = 0; // The last time the LED was updated (blinked)
+long COML_blinkInterval = 1000; // The ammount of time (in milliseconds) between blinks
+int COML_doBlink = 0; // <1 == Don't blink, >0 == Blink
+
 
 //GPS Setup
-//SoftwareSerial GPSSerial(GPS_RX, GPS_TX); // RX, TX (TX not used)
-//const int sentenceSize = 80;
-//char sentence[sentenceSize];
-//TinyGPS GPS;
+SoftwareSerial GPSSerial(GPS_RX, GPS_TX); // RX, TX (TX not used)
+const int sentenceSize = 80;
+char sentence[sentenceSize];
+TinyGPS GPS;
 
 //GSM/GPRS Sheild Setup (SM5100B)
 SoftwareSerial CellSerial(CELL_RX, CELL_TX);
@@ -34,22 +57,33 @@ char atbuff_idx;
 
 //PString myString(buffer,sizeof(buffer));
 
-int 1stLoop = 1;
+int firstLoop = 1;
 
 void setup() {
   Serial.begin(9600);
-  //GPSSerial.begin(9600);
+  GPSSerial.begin(9600);
   CellSerial.begin(9600);
   
-  //CellSerial.println("AT+SBAND=7");
   // set the digital pin as output:
-  //pinMode(StatusLEDRed, OUTPUT);
-  //pinMode(StatusLEDGreen, OUTPUT);
-  //pinMode(LowBattLED, OUTPUT);
-  //pinMode(ActivityLED, OUTPUT);
-  //pinMode(CellLED, OUTPUT);
-  //pinMode(GPSLED, OUTPUT);
+  pinMode(GPS_LED_R, OUTPUT);
+  pinMode(GPS_LED_G, OUTPUT);
+  pinMode(CELL_LED_R, OUTPUT);
+  pinMode(CELL_LED_G, OUTPUT);
+  pinMode(STATUS_LED_R, OUTPUT);
+  pinMode(STATUS_LED_G, OUTPUT);
   
+  ToggleGLL(RED);
+  ToggleSTL(RED);
+  ToggleCOML(RED);
+  delay(1500);
+  ToggleGLL(GRN);
+  ToggleSTL(GRN);
+  ToggleCOML(GRN);
+  delay(1500);
+  ToggleCOML(OFF);
+  ToggleGLL(OFF);
+  ToggleSTL(OFF);
+
   Serial.println("Finished setup...");
   delay(5000);
 }
@@ -87,13 +121,14 @@ void loop()
   */
   
   
-  if(1stLoop > 0) {
+  if(firstLoop > 0) {
     CellSerial.println("AT+SBAND=7");
     delay(1000);
-    1stLoop = 0;
+    firstLoop = 0;
     while (GPRS_Registered == 0 || GPRS_AT_Ready == 0) {
       GetATString();
       ATStringHandler();
+      LEDBlinker();
     }
     
     Serial.println("Setting up PDP Context");
@@ -110,8 +145,9 @@ void loop()
   
   } else {
     Serial.println("Looping...");
-    delay(150); 
+    delay(50); 
   }
+  LEDBlinker();
     //Serial.println(".");
   //delay(75);
 }
@@ -120,9 +156,6 @@ void loop()
 
 void GetATString(void) {
  
-  Serial.println("GetATString Called!");
-  delay(50);
-  
   char c;
   atbuff_idx = 0; // start at begninning
   while (1) {
@@ -171,12 +204,152 @@ void ATStringHandler() {
  
 }
 
-void SetStatusLED(boolean OK) {
-  if(OK) {
-    digitalWrite(StatusLEDRed, LOW);
-    digitalWrite(StatusLEDGreen, HIGH);
-  } else {
-    digitalWrite(StatusLEDRed, HIGH);
-    digitalWrite(StatusLEDGreen, LOW);
+//-------------------------------------------------------------
+// Send the updated tracking string to the tracking server via
+// GSM/GPRS cellular network. No need to wait for a response
+// from the server.
+//-------------------------------------------------------------
+void SendUpdate(String data) {
+  
+}
+// \<-- END SendUpdate(String)
+//-------------------------------------------------------------
+
+//-------------------------------------------------------------
+// Blink LEDs at a given interval and ONLY at the given interval
+// regardless of how many times LEDBlinker() is called. 
+// NOTE: If the ammount of time between function calls exceeds 
+// the specified interval, the LED won't blink until the function 
+// is finally called. The opposite, however, is not true. The 
+// blink interval will stay the same no matter how many times the 
+// function is called.
+//-------------------------------------------------------------
+void LEDBlinker() {
+  unsigned long curTime = millis(); // Get the current time in Milliseconds
+  
+  // Check/Blink the GPSLockLED
+  if(GLL_doBlink > 0) {
+    if(curTime - GLL_prevBlink > GLL_blinkInterval) {
+      GLL_prevBlink = curTime;   
+      if (GLL_curState == LOW)
+        ToggleGLL(GLL_doBlink);
+      else
+        ToggleGLL(OFF);
+    }
+  }
+  
+  // Check/Blink the StatusLED
+  if(STL_doBlink > 0) {
+    if(curTime - STL_prevBlink > STL_blinkInterval) {
+      STL_prevBlink = curTime;   
+      if (STL_curState == LOW)
+        ToggleSTL(STL_doBlink);
+      else
+        ToggleSTL(OFF);
+    }
+  }
+  
+  // Check/Blink the CommStatusLED
+  if(COML_doBlink > 0) {
+    if(curTime - COML_prevBlink > COML_blinkInterval) {
+      COML_prevBlink = curTime;   
+      if (COML_curState == LOW)
+        ToggleCOML(COML_doBlink);
+      else
+        ToggleCOML(OFF);
+    }
   }
 }
+// \<-- END - LEDBlinker function
+//-------------------------------------------------------------
+
+
+//-------------------------------------------------------------
+// Toggle ON/OFF LED functionsa AND enable/disable LED blinking. 
+// Multiple functions allow for individual LED configuration 
+// tweaks and modifications.
+// NOTE: Unlike these functions, the single LED blinking handler 
+// handles all LEDs that are enabled to blink and that have
+// the propper variables declared and set. (See top of code file)
+//-------------------------------------------------------------
+void GLL_Blink(int doBlink, long blinkInterval) { // (0 = NoBlink/1 = Blink Green/2 = Blink Red, 0 = Default/DisableOnly) 
+    ToggleGLL(OFF); // Set LED to the default state
+    GLL_doBlink = doBlink;
+    GLL_prevBlink = 0; // "
+    
+    // Validate and set the blink interval
+    if(blinkInterval > 100 && blinkInterval < 10000)
+       GLL_blinkInterval = blinkInterval;
+    else if(blinkInterval > 0)
+       GLL_blinkInterval = 1000;
+}
+
+void STL_Blink(int doBlink, long blinkInterval) { // (0 = NoBlink/1 = Blink, 0 = Default/DisableOnly) 
+    ToggleSTL(ON); // Set LED to the default state
+    STL_doBlink = doBlink; // Set the global variable(s)
+    STL_prevBlink = 0; // "
+    
+    // Validate and set the blink interval
+    if(blinkInterval > 100 && blinkInterval < 10000)
+       STL_blinkInterval = blinkInterval; 
+    else if(blinkInterval > 0)
+       STL_blinkInterval = 1000; 
+}
+
+void COML_Blink(int doBlink, long blinkInterval) { // (0 = NoBlink/1 = Blink, 0 = Default/DisableOnly) 
+    ToggleCOML(OFF); // Set LED to the default state
+    COML_doBlink = doBlink; // Set the global variable(s)
+    COML_prevBlink = 0; // "
+    
+    // Validate and set the blink interval
+    if(blinkInterval > 100 && blinkInterval < 10000)
+       COML_blinkInterval = blinkInterval; 
+    else if(blinkInterval > 0)
+       COML_blinkInterval = 1000; 
+
+}
+
+void ToggleGLL(int state) {
+  if(state == RED) {
+    digitalWrite(GPS_LED_R, HIGH);
+    digitalWrite(GPS_LED_G, LOW);
+  } else if(state == GRN) { 
+    digitalWrite(GPS_LED_R, LOW);
+    digitalWrite(GPS_LED_G, HIGH);
+  } else {
+    digitalWrite(GPS_LED_R, LOW);
+    digitalWrite(GPS_LED_G, LOW);
+  }
+  COML_curState = state; 
+} 
+  
+void ToggleSTL(int state) {
+  if(state == RED) {
+    digitalWrite(STATUS_LED_R, HIGH);
+    digitalWrite(STATUS_LED_G, LOW);
+  } else if(state == GRN) { 
+    digitalWrite(STATUS_LED_R, LOW);
+    digitalWrite(STATUS_LED_G, HIGH);
+  } else {
+    digitalWrite(STATUS_LED_R, LOW);
+    digitalWrite(STATUS_LED_G, LOW);
+  }
+  COML_curState = state; 
+} 
+
+void ToggleCOML(int state) {
+  if(state == RED) {
+    digitalWrite(CELL_LED_R, HIGH);
+    digitalWrite(CELL_LED_G, LOW);
+  } else if(state == GRN) { 
+    digitalWrite(CELL_LED_R, LOW);
+    digitalWrite(CELL_LED_G, HIGH);
+  } else {
+    digitalWrite(CELL_LED_R, LOW);
+    digitalWrite(CELL_LED_G, LOW);
+  }
+  COML_curState = state; 
+} 
+  
+// \<-- END LED utilization functions
+//-------------------------------------------------------------------
