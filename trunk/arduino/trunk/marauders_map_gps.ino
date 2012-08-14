@@ -83,6 +83,10 @@ void setup() {
   ToggleCOML(OFF);
   ToggleGLL(OFF);
   ToggleSTL(OFF);
+  
+  STL_Blink(GRN, 0);
+  COML_Blink(RED, 0);
+  ToggleGLL(RED);
 
   Serial.println("Finished setup...");
   delay(5000);
@@ -122,9 +126,8 @@ void loop()
   
   
   if(firstLoop > 0) {
-    CellSerial.println("AT+SBAND=7");
-    delay(1000);
     firstLoop = 0;
+    
     while (GPRS_Registered == 0 || GPRS_AT_Ready == 0) {
       GetATString();
       ATStringHandler();
@@ -148,8 +151,6 @@ void loop()
     delay(50); 
   }
   LEDBlinker();
-    //Serial.println(".");
-  //delay(75);
 }
 
 
@@ -177,6 +178,7 @@ void GetATString(void) {
       atbuff[atbuff_idx++]= c;
     }
   }
+  Serial.println(atbuff);
 }
 
  
@@ -184,21 +186,25 @@ void GetATString(void) {
  
 void ATStringHandler() {
   
-  Serial.println("ATStringHandler Called!");
-  delay(50);
- 
+  Serial.println("ATStringHandler Called!"); //DEBUG
+  
   if(strstr(atbuff, "+SIND: 8") != 0) {
     GPRS_Registered = 0;
+    COML_Blink(LOW, 0);
+    ToggleCOML(RED);
     Serial.println("GPRS Network Not Available");
   }
  
   if(strstr(atbuff, "+SIND: 11") != 0) {
     GPRS_Registered = 1;
+    COML_Blink(GRN, 0);
     Serial.println("GPRS Registered");
   }
  
   if(strstr(atbuff, "+SIND: 4") != 0) {
     GPRS_AT_Ready = 1;
+    COML_Blink(LOW, 0);
+    ToggleCOML(GRN);
     Serial.println("GPRS AT Ready");
   }
  
