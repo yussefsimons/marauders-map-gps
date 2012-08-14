@@ -55,10 +55,12 @@ int GPRS_AT_Ready = 0;
 char atbuff[BUFFER_SIZE];
 char atbuff_idx;
 
-//PString myString(buffer,sizeof(buffer));
+PString ServerData(buffer,sizeof(buffer));
 
 int firstLoop = 1;
 int isDisabled = 0;
+
+int TrackerID = 1;
 
 void setup() {
   Serial.begin(9600);
@@ -119,7 +121,7 @@ void loop()
     LEDBlinker();
     delay(1000);
     Serial.println("Configuring TCP connection to TCP Server");
-    Serial1.println("AT+SDATACONF=1,\"TCP\",\"\",");
+    Serial1.println("AT+SDATACONF=1,\"TCP\",\"173.66.243.160\",20002");
     LEDBlinker();
     delay(1000);
     Serial.println("Starting TCP Connection\n");
@@ -182,6 +184,21 @@ void loop()
         Serial.print("\n");
         delay(25);
         */
+        ServerData.print("AT+SSTRSEND=1,\"");
+        ServerData.print(TrackerID,DEC);
+        ServerData.print("|");
+        ServerData.print(lat,DEC);
+        ServerData.print("|");
+        ServerData.print(lon,DEC);
+        ServerData.print("|");
+        ServerData.print(alt,DEC);
+        ServerData.print("|");
+        ServerData.print(speed,DEC);
+        ServerData.print("|");
+        ServerData.print(time,DEC);
+        Serial.println(ServerData);
+        Serial1.println(ServerData);
+        ServerData.begin();
       }
     } else {
       //Serial.println("Looping...");

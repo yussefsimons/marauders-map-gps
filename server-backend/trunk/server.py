@@ -1,7 +1,7 @@
 #!/bin/python
 import socket, MySQLdb
 
-ServerIP = "0.0.0.0"
+ServerIP = "173.66.243.160"
 ServerPort = "20002"
 RecvBuffer = 40
 
@@ -9,7 +9,7 @@ MySQL_Host = "localhost"
 MySQL_DB = "maraudersmap"
 MySQL_Table = "tracking"
 MySQL_User = "maraudersmap"
-MySQL_Pass = ""
+MySQL_Pass = "4YE28EX7QTLy7x7G"
 
 
 def StartMySQL():
@@ -42,29 +42,28 @@ def Server():
 
     try:
 	while 1:
-	data = conn.recv(RecvBuffer)
-	if not data:break
+	    data = conn.recv(RecvBuffer)
+	    if not data:break
  
-	#Data Format: tID|Lat|Lon|Alt|Speed
-	tid,lat,lon,alt,speed = data.split("|")
-	print "\nGot Tracker (ID: " + tid + ") Data:"
-	print " - Latitude: " + lat
-	print " - Longitude: " + lon
-	print " - Altitude: " + alt
-	print " - Speed: " + speed	 
-	lat = float(lat)
-	lon = float(lon)
-	alt = float(alt)
-	speed = float(speed)
-	cursor.execute ("""INSERT INTO tracker (id, lat, lon, alt, speed) VALUES (%s,%s,%s,%s,%s)""", (tid,lat,lon,alt,speed)
-	db.commit()
+	    #Data Format: tID|Lat|Lon|Alt|Speed
+	    tid,lat,lon,alt,speed,time = data.split("|")
+	    print "\nGot Tracker (ID: " + tid + ") Data:"
+	    print " - Latitude: " + lat
+	    print " - Longitude: " + lon
+	    print " - Altitude: " + alt
+	    print " - Speed: " + speed	
+	    print " - Time: " + time	  
+	    #lat = float(lat)
+	    #lon = float(lon)
+	    #alt = float(alt)
+	    #speed = float(speed)
+	    cursor.execute ("""INSERT INTO tracker (id, lat, lon, alt, speed, ) VALUES (%s,%s,%s,%s,%s,%s)""", (tid,lat,lon,alt,speed,datetime.strftime('%Y-%m-%d %H:%M:%S'))
+	    db.commit()
     except KeyboardInterrupt:
 	ClearDB(cursor,db);
 	cursor.close()
 	conn.close()
 	db.close()
-
-
 
 
 if __name__ == '__main__':
