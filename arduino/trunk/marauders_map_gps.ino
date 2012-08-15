@@ -1,21 +1,19 @@
-#include <SoftwareSerial.h>
+//#include <SoftwareSerial.h>
 #include <string.h>
 #include <TinyGPS.h>
 #include <PString.h>
 
-#define GPS_RX 12
-#define GPS_TX 11
 #define BUFFER_SIZE 90
 //Button Pins
 #define INTERUPT_BTN 13
 #define DISABLE_BTN 10
 //LED Pins
-#define GPS_LED_R 17
-#define GPS_LED_G 16
-#define GSM_LED_R 15
-#define GSM_LED_G 14
-#define STS_LED_R 21
-#define STS_LED_G 20
+#define GPS_LED_R 2
+#define GPS_LED_G 3
+#define GSM_LED_R 4
+#define GSM_LED_G 5
+#define STS_LED_R 23
+#define STS_LED_G 22
 #define ON HIGH
 #define OFF LOW
 #define RED 1
@@ -41,7 +39,7 @@ long GSM_LED_BlinkInterval = 1000; // The ammount of time (in milliseconds) betw
 int GSM_LED_doBlink = 0; // <1 == Don't blink, >0 == Blink
 
 //GPS Setup
-SoftwareSerial GPSSerial(GPS_RX, GPS_TX); // RX, TX (TX not used)
+//SoftwareSerial GPSSerial(GPS_RX, GPS_TX); // RX, TX (TX not used)
 TinyGPS GPS;
 
 //GSM/GPRS Sheild Setup (SM5100B)
@@ -62,9 +60,9 @@ long UpdateInterval = 10000;
 long LastUpdate = 0;
 
 void setup() {
-  Serial.begin(9600);
-  GPSSerial.begin(9600);
-  Serial1.begin(9600);
+  Serial.begin(9600); //Debug output
+  Serial1.begin(9600); //GSM/GPRS SM5100B
+  Serial2.begin(9600); //GPS (Venus628)
   
   //Set LED Pins (Output)
   pinMode(GPS_LED_R, OUTPUT);
@@ -103,6 +101,10 @@ void loop()
   }
   
   isDisabled = digitalRead(DISABLE_BTN); //Disabled if pin 10 is +5VDC
+  if(isDisabled > 0) {
+    STS_LED_Blink(0, 0);
+    STS_LED(RED);
+  }
   
   if(firstLoop > 0) { //This is the first loop that loop() has executed
     firstLoop = 0;
@@ -131,15 +133,15 @@ void loop()
   
   } else {
     
-    if(isDisabled) {
+    if(isDisabled > 0) {
       Serial.println("Tracker disabled...");
       STS_LED_Blink(OFF, 0);
       STS_LED(RED);
       delay(1000);
     } else {
-      if(GPSSerial.available()) { 
+      if(Serial2.available()) { 
         
-        int c = GPSSerial.read();
+        int c = Serial2.read();
         if (GPS.encode(c)) {
           GPS.f_get_position(&lat, &lon, &fix_age);
           
@@ -233,7 +235,7 @@ void GetATString(void) {
       c = Serial1.read();
       if (c == -1) {
         at_str[at_str_idx] = '\0';
-        Serial.println(at_str);
+        //Serial.println(at_str);
         return;
       }
       if (c == '\n') {
@@ -241,7 +243,7 @@ void GetATString(void) {
       }
       if ((at_str_idx == BUFFER_SIZE - 1) || (c == '\r')){
         at_str[at_str_idx] = '\0';
-        Serial.println(at_str);
+        //Serial.println(at_str);
         return;
       }
       at_str[at_str_idx++]= c;
@@ -253,9 +255,7 @@ void GetATString(void) {
 /* Processes the AT String to determine if GPRS is registered and AT is ready */
  
 void ATStringHandler() {
-  
-  Serial.println("ATStringHandler Called!"); //DEBUG
-  
+    
   if(strstr(at_str, "+SIND: 8") != 0) {
     isRegisteredNetwork = 0;
     GSM_LED_Blink(OFF, 0);
