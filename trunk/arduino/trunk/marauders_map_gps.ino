@@ -44,7 +44,7 @@ TinyGPS GPS;
 
 //GSM/GPRS Sheild Setup (SM5100B)
 char recd_char = 0;
-char buffer[60];
+char buffer[250];
 int isRegisteredNetwork = 0;
 int isNetworkReady = 0;
 char at_str[BUFFER_SIZE];
@@ -198,9 +198,14 @@ void loop()
           if(millis() - LastUpdate > UpdateInterval) { 
             LastUpdate = millis();
             ServerData.print("AT+SSTRSEND=1,\"");
-            ServerData.print(TrackerID,DEC);
+            ServerData.print(TrackerID, DEC);
             ServerData.print("|");
             ServerData.print(lat,DEC);
+            //Serial.print("Lat: ");
+            //Serial.print(lat);
+            //Serial.print(" -- Lon: ");
+            //Serial.print(lat);
+            //delay(1000);
             ServerData.print("|");
             ServerData.print(lon,DEC);
             ServerData.print("|");
@@ -209,17 +214,13 @@ void loop()
             ServerData.print(speed,DEC);
             ServerData.print("|");
             ServerData.print(time,DEC);
+            ServerData.print("\"");
             Serial.println(ServerData);
             Serial1.println(ServerData);
             ServerData.begin();
           } 
           delay(250);
         }
-      } else {
-        GPS_LED_Blink(OFF, 0);
-        GPS_LED(RED);
-        GPS_LED_Blink(RED, 0);
-        delay(150); 
       }
     }
   }
@@ -235,7 +236,7 @@ void GetATString(void) {
       c = Serial1.read();
       if (c == -1) {
         at_str[at_str_idx] = '\0';
-        //Serial.println(at_str);
+        Serial.println(at_str);
         return;
       }
       if (c == '\n') {
@@ -243,7 +244,7 @@ void GetATString(void) {
       }
       if ((at_str_idx == BUFFER_SIZE - 1) || (c == '\r')){
         at_str[at_str_idx] = '\0';
-        //Serial.println(at_str);
+        Serial.println(at_str);
         return;
       }
       at_str[at_str_idx++]= c;
@@ -255,7 +256,9 @@ void GetATString(void) {
 /* Processes the AT String to determine if GPRS is registered and AT is ready */
  
 void ATStringHandler() {
-    
+  
+  Serial.println("Called ATStringHandler()"); 
+  
   if(strstr(at_str, "+SIND: 8") != 0) {
     isRegisteredNetwork = 0;
     GSM_LED_Blink(OFF, 0);
