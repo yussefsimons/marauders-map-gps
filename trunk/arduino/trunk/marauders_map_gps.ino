@@ -115,21 +115,44 @@ void loop()
       LEDBlinker(); //Blink LEDs
     }
     
-    Serial.println("Setting up PDP Context:\n  AT+CGDCONT=1,\"IP\",\"isp.cingular\"");
-    Serial1.println("AT+CGDCONT=1,\"IP\",\"isp.cingular\"");
-    LEDBlinker();
-    delay(1000);
-    Serial.println("Activating PDP Context:\n  AT+CGACT=1,1");
-    Serial1.println("AT+CGACT=1,1");
-    LEDBlinker();
-    delay(1000);
-    Serial.println("Configuring TCP connection to TCP Server:\n  AT+SDATACONF=1,\"TCP\",\"173.66.243.160\",20002");
-    Serial1.println("AT+SDATACONF=1,\"TCP\",\"173.66.243.160\",20002");
-    LEDBlinker();
-    delay(1000);
-    Serial.println("Starting TCP Connection:\n  AT+SDATASTART=1,1");
+    Serial1.println("AT+CGATT?"); 
+    CheckGPRSOK("CGATT: ");
+
+    Serial1.println("AT+CGDCONT=1, \"IP\", \"wap.cingular\"");
+    CheckGPRSOK("Direccion: ");
+    
+    Serial1.println("AT+CGPCO=0, \"wap@cingulargprs.com\", \"cingular1\", 1"); 
+    CheckGPRSOK("CGPCO: ");
+     
+    Serial1.println("AT+CGACT=1,1"); 
+    CheckGPRSOK("CGACT: ");  
+     
+    Serial1.println("AT+SDATACONF=1, \"TCP\", \"thebasementserver.com\", 20002");
+    CheckGPRSOK("TCP: ");
+   
     Serial1.println("AT+SDATASTART=1,1");
-    LEDBlinker();
+    CheckGPRSOK("SDATASTART: ");
+     
+    Serial1.println("AT+SDATASTATUS=1");
+    CheckGPRSOK("SDATASTATUS: ");    
+//  +SOCKSTATUS:  1,0,0104,0,0,0  (0 means socket not connected, 0104 means socket is connecting) 
+//  +SOCKSTATUS:  1,1,0102,0,0,0 (1 means socket connected) 
+
+  //  Serial.println("Setting up PDP Context:\n  AT+CGDCONT=1,\"IP\",\"wap.cingular\"");
+  //  Serial1.println("AT+CGDCONT=1,\"IP\",\"wap.cingular\"");
+    //LEDBlinker();
+   // delay(1000);
+   // Serial.println("Activating PDP Context:\n  AT+CGACT=1,1");
+    //Serial1.println("AT+CGACT=1,1");
+   // LEDBlinker();
+  //  delay(1000);
+  ///  Serial.println("Configuring TCP connection to TCP Server:\n  AT+SDATACONF=1,\"TCP\",\"173.66.243.160\",20002");
+  //  Serial1.println("AT+SDATACONF=1,\"TCP\",\"173.66.243.160\",20002");
+  //  LEDBlinker();
+ //   delay(1000);
+ //   Serial.println("Starting TCP Connection:\n  AT+SDATASTART=1,1");
+  //  Serial1.println("AT+SDATASTART=1,1");
+  //  LEDBlinker();
   
   } else {
     
@@ -227,6 +250,20 @@ void loop()
   LEDBlinker();
 }
 
+void CheckGPRSOK(const char* cmd){
+  unsigned long t= millis();
+  Serial.println();
+  Serial.print(cmd);
+  while(Serial1.available()<1 && (millis()-t) < 10000){}
+ 
+  while(Serial1.available()>0) {
+    recd_char=Serial1.read();    //Get the character from the cellular serial port.
+    Serial.print(recd_char);
+    delay(2);
+  }
+
+}
+
 void GetATString(void) {
  
   char c;
@@ -257,7 +294,7 @@ void GetATString(void) {
  
 void ATStringHandler() {
   
-  Serial.println("Called ATStringHandler()"); 
+  Serial.println("Waiting for AT resylts...");
   
   if(strstr(at_str, "+SIND: 8") != 0) {
     isRegisteredNetwork = 0;
