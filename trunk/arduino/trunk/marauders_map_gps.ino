@@ -5,15 +5,14 @@
 
 #define BUFFER_SIZE 90
 //Button Pins
-#define INTERUPT_BTN 13
-#define DISABLE_BTN 10
+#define DISABLE_BTN 13
 //LED Pins
 #define GPS_LED_R 2
 #define GPS_LED_G 3
 #define GSM_LED_R 4
 #define GSM_LED_G 5
-#define STS_LED_R 23
-#define STS_LED_G 22
+#define STS_LED_R 6
+#define STS_LED_G 7
 #define ON HIGH
 #define OFF LOW
 #define RED 1
@@ -74,7 +73,6 @@ void setup() {
   
   //Set button pins
   pinMode(DISABLE_BTN, INPUT);
-  pinMode(INTERUPT_BTN, INPUT);
   
   //Set LEDs to initial state
   STS_LED_Blink(GRN, 0);
