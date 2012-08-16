@@ -25,7 +25,7 @@
 
 #include "PCD8544.h"
 
-#include <WProgram.h>
+#include <Arduino.h>
 #include <avr/pgmspace.h>
 
 
