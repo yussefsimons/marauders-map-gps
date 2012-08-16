@@ -8,10 +8,10 @@
 
 LiquidCrystal lcd(13, 12, 11, 10, 9, 8, 7, 6, 5, 4);
 
-boolean isModePressed = false;
-boolean isSelectPressed = false;
 boolean isLCDMainMenu = false;
-boolean PrintSerialToLCD = true;
+boolean MonitorSerial = true;
+int lastModeButtonState = LOW; // The button's previous state, the last state the button was seen with/given  
+int lastSelectButtonState = LOW; // The button's previous state, the last state the button was seen with/given  
 int BTN_Mode_Prev = 0;
 int BTN_Select_Prev = 0;
 int Buttons_Pressed_Time = 0; //Time (in milliseconds) when both buttons were pressed together
@@ -25,9 +25,6 @@ void setup() {
   pinMode(LED_STATUS_PIN, OUTPUT);
   pinMode(BTN_MODE, INPUT);
   pinMode(BTN_SELECT, INPUT);
-  //Interupts
-  attachInterrupt(0, ModeBtnChanged, CHANGE);
-  attachInterrupt(1, SelectBtnChanged, CHANGE);
   
   delay(100);
   digitalWrite(LED_STATUS_PIN, HIGH);
@@ -71,47 +68,67 @@ void setup() {
 }
 
 void loop() {
-    /* 
-    if(digitalRead(BTN_MODE) == HIGH && digitalRead(BTN_SELECT) == HIGH) {
-       if(isModePressed && isSelectPressed) {
-         if(millis() - Buttons_Pressed_Time > BTN_PRESSHOLD_DUR) {
-           lcd.clear();
-         }
-       }
-       */
+    delay(50);
+    int MODE_state = digitalRead(BTN_MODE);
+    int SELECT_state = digitalRead(BTN_SELECT);
+    if(SELECT_state == LOW || MODE_state == LOW) { Buttons_Pressed_Time = 0; }
+    if(SELECT_state == HIGH && MODE_state == HIGH) { 
+      if(Buttons_Pressed_Time == 0) { Buttons_Pressed_Time = millis(); }
+      if(millis() - Buttons_Pressed_Time > BTN_PRESSHOLD_DUR) {
+        lcd.clear();
+        lcd.print("Dual press clear");
+      }
+    } else { 
+      if(MODE_state != lastModeButtonState) {
+        if(MODE_state == HIGH) {
+          isLCDMainMenu = true;
+          MonitorSerial = false;
+          if(isLCDMainMenu) {
+            menuItemSelected++;
+            if(menuItemSelected > menuItemsCount - 1) { menuItemSelected = 0; }
+          }
+          showMainMenu();
+        } else {
+          isLCDMainMenu = false;
+          MonitorSerial = true;
+        }    
+      }
+      if(SELECT_state != lastSelectButtonState) {
+        if(SELECT_state == HIGH) {
+          if(isLCDMainMenu) {
+            MonitorSerial = false;
+            if(menuItemSelected == 0) {
+              lcd.clear();
+              lcd.print("No Previous Data!");
+            } else if(menuItemSelected == 1) {
+              isLCDMainMenu = false;
+              MonitorSerial = true;
+              lcd.clear();
+              lcd.print("Listenting...");
+            }
+          
+          }
+        }
+      }
+      lastModeButtonState = MODE_state;
+      lastSelectButtonState = SELECT_state;
+
+    
     if (Serial.available()) {
       // wait a bit for the entire message to arrive
       delay(150);
-      if(PrintSerialToLCD) { lcd.clear(); } //else { lastSData[255] = chr[""]; }
+      if(MonitorSerial) { lcd.clear(); } //else { lastSData[255] = chr[""]; }
       // read all the available characters
       int i = 0;
       while (Serial.available() > 0) {
         // display each character to the LCD
         SerialActive(true);
-        if(PrintSerialToLCD) { lcd.write(Serial.read()); } else { if(i < 255) {lastSData[i] = Serial.read();} }
+        if(MonitorSerial) { lcd.write(Serial.read()); } else { if(i < 255) {lastSData[i] = Serial.read();} }
         SerialActive(false);
         i++;
       }
     }
     delay(250);
-}
-
-void ModeBtnChanged() {
-  if(digitalRead(BTN_MODE) > 0) {
-    isModePressed = true;
-    //lcd.println("MODE: Pressed");
-    if(isSelectPressed) {
-      Buttons_Pressed_Time = millis();
-    } else {
-      if(isLCDMainMenu) {
-        menuItemSelected++;
-        if(menuItemSelected > menuItemsCount - 1) { menuItemSelected = 0; }
-      }
-      showMainMenu();
-    }
-  } else {
-    isModePressed = false; 
-    //lcd.println("MODE: Unpressed");
   }
 }
 
@@ -120,48 +137,12 @@ void showMainMenu() {
   lcd.clear();
   if(isLCDMainMenu = false) { menuItemSelected = 0; }
   isLCDMainMenu = true;
-  PrintSerialToLCD = false;
+  MonitorSerial = false;
   if(menuItemSelected == 0) { lcd.print(">"); } else { lcd.print(" "); }
   lcd.print(" Previous Data");
   lcd.setCursor(1, 0);
   if(menuItemSelected == 1) { lcd.print(">"); } else { lcd.print(" "); }
   lcd.print(" Exit Menu");
-}
-
-void SelectBtnChanged() {
-  if(digitalRead(BTN_SELECT) > 0) {
-    isSelectPressed = true;
-    if(isModePressed) { 
-      Buttons_Pressed_Time = millis();
-      if(millis() - Buttons_Pressed_Time > BTN_PRESSHOLD_DUR) {
-        lcd.clear();
-        lcd.print("Both buttons pressed");
-        delay(1000);
-      }
-    }
-    if(isLCDMainMenu) {
-      lcd.clear();
-      if(menuItemSelected == 0) {
-        lcd.print("Logging NOT enabled!");
-        lcd.setCursor(2,0);
-        lcd.print("MODE: Main Menu");
-        delay(100);
-      } else if(menuItemSelected == 1) {
-         isLCDMainMenu = false;
-         lcd.clear();  
-      } else {
-        digitalWrite(LED_STATUS_PIN, HIGH);
-        delay(850); 
-        digitalWrite(LED_STATUS_PIN, LOW);
-      }
-    } else {
-      //Keep count of serial messages recieved
-    }    
-  } else {
-    isSelectPressed = false; 
-    //lcd.clear();
-    //lcd.print("SELECT: Unpressed");
-  }
 }
 
 void SerialActive(boolean a) {
