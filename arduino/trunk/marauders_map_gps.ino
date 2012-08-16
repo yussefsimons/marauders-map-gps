@@ -2,6 +2,7 @@
 #include <string.h>
 #include <TinyGPS.h>
 #include <PString.h>
+#include <IntersemaBaro.h>
 
 #define BUFFER_SIZE 90
 //Button Pins
@@ -92,6 +93,8 @@ void loop()
   if(isDisabled > 0) {
     STS_LED_Blink(0, 0);
     STS_LED(RED);
+    Serial.println("Tracker DISABLED!");
+    delay(25);
   }
   
   if(firstLoop > 0) { //This is the first loop that loop() has executed
@@ -101,6 +104,13 @@ void loop()
       GetATString(); //Read from SM5100B serial port
       ATStringHandler(); //Parse and handle the recieved messages
       LEDBlinker(); //Blink LEDs
+      isDisabled = digitalRead(DISABLE_BTN); //Disabled if pin 10 is +5VDC
+      if(isDisabled > 0) {
+        STS_LED_Blink(0, 0);
+        STS_LED(RED);
+        Serial.println("Tracker DISABLED!");
+        delay(25);
+      }
     }
     
     Serial1.println("AT+CGATT?"); 
@@ -145,7 +155,7 @@ void loop()
   } else {
     
     if(isDisabled > 0) {
-      Serial.println("Tracker disabled...");
+      Serial.println("Tracker DISABLED!");
       STS_LED_Blink(OFF, 0);
       STS_LED(RED);
       delay(1000);
@@ -212,11 +222,11 @@ void loop()
             ServerData.print(TrackerID, DEC);
             ServerData.print("|");
             ServerData.print(lat,DEC);
-            //Serial.print("Lat: ");
+            Serial.println("Lat: %d", lat);
             //Serial.print(lat);
-            //Serial.print(" -- Lon: ");
-            //Serial.print(lat);
-            //delay(1000);
+            Serial.println("Lon: %d", lon);
+            //Serial.print(lon);
+            delay(50);
             ServerData.print("|");
             ServerData.print(lon,DEC);
             ServerData.print("|");
@@ -226,7 +236,7 @@ void loop()
             ServerData.print("|");
             ServerData.print(time,DEC);
             ServerData.print("\"");
-            Serial.println(ServerData);
+            //Serial.println(ServerData);
             Serial1.println(ServerData);
             ServerData.begin();
           } 
