@@ -87,17 +87,7 @@ void loop()
 {
   float lat, lon, alt, speed, course;
   unsigned long fix_age, time, date;// process new gps info here
-  
-  while(digitalRead(INTERUPT_BTN) > 0) {
-    delay(500);
-    STS_LED_Blink(OFF, 0);
-    STS_LED(RED);
-    GSM_LED_Blink(OFF, 0);
-    GSM_LED(OFF);
-    GPS_LED_Blink(OFF, 0);
-    GPS_LED(OFF);
-  }
-  
+    
   isDisabled = digitalRead(DISABLE_BTN); //Disabled if pin 10 is +5VDC
   if(isDisabled > 0) {
     STS_LED_Blink(0, 0);
