@@ -1,6 +1,7 @@
 #include <LiquidCrystal.h>
 
 #define LED_ACTIVITY_PIN 19
+#define LED_STATUS_PIN 18
 #define BTN_MODE 3
 #define BTN_SELECT 2
 #define BTN_PRESSHOLD_DUR 1250
@@ -14,9 +15,19 @@ int BTN_Pressed_Time = 0; //Time in milliseconds
 void setup() {
   Serial.begin(9600);
   pinMode(LED_ACTIVITY_PIN, OUTPUT);
+  pinMode(LED_STATUS_PIN, OUTPUT);
   pinMode(BTN_MODE INPUT);
   pinMode(BTN_SELECT, INPUT);
-
+  digitalWrite(LED_STATUS_PIN, HIGH);
+  delay(500);
+  digitalWrite(LED_STATUS_PIN, LOW);
+  delay(500);
+  digitalWrite(LED_STATUS_PIN, HIGH);
+  delay(500);
+  digitalWrite(LED_STATUS_PIN, LOW);
+  delay(500);
+  digitalWrite(LED_STATUS_PIN, HIGH);
+  
   lcd.begin(20, 4);
   lcd.clear();
   // Print a message to the LCD.
@@ -39,18 +50,18 @@ void setup() {
 
 void loop() {
     if(digitalRead(BTN_MODE) == HIGH && digitalRead(BTN_SELECT) == HIGH) {
-       if(BTN_Mode_Prev < 1 || BTN_Select_Prev < 1) {
-         BTN_Pressed_Time = millis();
-         BTN_Mode_Prev = 1;
-         BTN_Select_Prev = 1;
-       } else {
+       if(BTN_Mode_Prev > 0 && BTN_Select_Prev > 0) {
          if(millis() - BTN_Pressed_Time > BTN_PRESSHOLD_DUR) {
            lcd.clear();
          }
+       } else {
+         BTN_Pressed_Time = millis();
+         BTN_Mode_Prev = 1;
+         BTN_Select_Prev = 1;
        }
     if (Serial.available()) {
     // wait a bit for the entire message to arrive
-    delay(100);
+    delay(150);
     // clear the screen
     lcd.clear();
     // read all the available characters
