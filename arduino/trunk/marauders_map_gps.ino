@@ -61,8 +61,6 @@ void setup() {
   Serial1.begin(9600); //GSM/GPRS SM5100B
   Serial2.begin(9600); //GPS (Venus628)
 
-  baro.init();
-
   //Set LED Pins (Output)
   pinMode(GPS_LED_R, OUTPUT);
   pinMode(GPS_LED_G, OUTPUT);
@@ -79,7 +77,7 @@ void setup() {
   GSM_LED_Blink(RED, 0);
   GPS_LED(RED);
 
-  Serial.println("Finished setup...");
+  Serial.println("$>Finished setup...");
   delay(10);
 }
 
@@ -93,7 +91,7 @@ void loop()
   if(isDisabled > 0) {
     STS_LED_Blink(0, 0);
     STS_LED(RED);
-    Serial.println("Tracker DISABLED!");
+    Serial.println("$>Tracker DISABLED!");
     delay(25);
   }
 
@@ -139,18 +137,18 @@ void loop()
         GPS.f_get_position(&lat, &lon, &fix_age);
 
         if (fix_age == TinyGPS::GPS_INVALID_AGE) {
-          Serial.println("No fix detected");
+          Serial.println("$>No fix detected");
           GPS_LED_Blink(OFF, 0);
           GPS_LED(RED);
           STS_LED_Blink(RED, 0);
         } 
         else if (fix_age > 5000) {
-          Serial.println("Warning: possible stale data!");
+          Serial.println("$>Warning: possible stale data!");
           GPS_LED_Blink(RED, 0);
           STS_LED_Blink(GRN, 0);
         } 
         else {
-          Serial.println("Data is current.");
+          Serial.println("$>Data is current.");
           GPS_LED_Blink(OFF, 0);
           GPS_LED(GRN);
           STS_LED_Blink(OFF, 0);
@@ -169,13 +167,13 @@ void loop()
         speed = GPS.f_speed_mph();
         alt = GPS.f_altitude();
         dtostrf(alt,12,8,s);            
-        Serial.print("Alt: ");
+        Serial.print("$>Alt: ");
         Serial.println(s);
         dtostrf(lat,12,8,s);            
-        Serial.print("Lat: ");
+        Serial.print("$>Lat: ");
         Serial.println(s);
         dtostrf(lon,12,8,s);  
-        Serial.print("Lon: ");
+        Serial.print("$>Lon: ");
         Serial.println(s);       
         ServerData.print("AT+SSTRSEND=1,\"");   
         ServerData.print(TrackerID,DEC);
@@ -190,6 +188,7 @@ void loop()
         ServerData.print("|");
         ServerData.print(time,DEC);
         ServerData.print("\"");
+        Serial.print("$>");
         Serial.println(ServerData);
         delay(20);
         Serial1.println(ServerData);
@@ -203,6 +202,7 @@ void loop()
 void CheckGPRSOK(const char* cmd){
   unsigned long t= millis();
   Serial.println();
+  //Serial.print("$>");
   Serial.println(cmd);
 
   while(Serial1.available()<1 && (millis()-t) < 10000){
@@ -217,7 +217,7 @@ void CheckGPRSOK(const char* cmd){
 }
 
 void GetATString(void) {
-
+  delay(3);
   char c;
   at_str_idx = 0; // start at begninning
   if(Serial1.available() > 0) {
@@ -252,20 +252,20 @@ void ATStringHandler() {
     isGPRSRegistered = 0;
     GSM_LED_Blink(OFF, 0);
     GSM_LED(RED);
-    Serial.println("GPRS/GSM Network Not Available");
+    Serial.println("$>GPRS/GSM Network Not Available");
   }
 
   if(strstr(at_str, "+SIND: 11") != 0) {
     isGPRSRegistered = 1;
     GSM_LED_Blink(GRN, 0);
-    Serial.println("GPRS/GSM Registered On Network!");
+    Serial.println("$>GPRS/GSM Registered On Network!");
   }
 
   if(strstr(at_str, "+SIND: 4") != 0) {
     isGPRSReady = 1;
     GSM_LED_Blink(OFF, 0);
     GSM_LED(GRN);
-    Serial.println("GPRS/GSM Ready For AT Commands...");
+    Serial.println("$>GPRS/GSM Ready For AT Commands...");
   }
 }
 
