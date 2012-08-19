@@ -113,54 +113,78 @@ void loop()
     Serial1.println("AT+CGPCO=0, \"wap@cingulargprs.com\", \"cingular1\", 1"); 
     CheckGPRSOK("CGPCO: ");
 
-    Serial1.println("AT+CGACT=1,1"); 
-    CheckGPRSOK("CGACT: ");  
-
-    Serial1.println("AT+SDATACONF=1, \"TCP\", \"thebasementserver.com\", 20002");
-    CheckGPRSOK("TCP: ");
-
-    Serial1.println("AT+SDATASTART=1,1");
-    CheckGPRSOK("SDATASTART: ");
-
-    Serial1.println("AT+SDATASTATUS=1");
-    CheckGPRSOK("SDATASTATUS: ");    
-    //  +SOCKSTATUS:  1,0,0104,0,0,0  (0 means socket not connected, 0104 means socket is connecting) 
-    //  +SOCKSTATUS:  1,1,0102,0,0,0 (1 means socket connected) 
-
-  } 
-  else {
-
-    if(Serial2.available()) { 
-
-      int c = Serial2.read();
-      if (GPS.encode(c)) {
-        GPS.f_get_position(&lat, &lon, &fix_age);
-
-        if (fix_age == TinyGPS::GPS_INVALID_AGE) {
-          Serial.println("$>No fix detected");
-          GPS_LED_Blink(OFF, 0);
-          GPS_LED(RED);
-          STS_LED_Blink(RED, 0);
-        } 
-        else if (fix_age > 5000) {
-          Serial.println("$>Warning: possible stale data!");
-          GPS_LED_Blink(RED, 0);
-          STS_LED_Blink(GRN, 0);
-        } 
-        else {
-          Serial.println("$>Data is current.");
-          GPS_LED_Blink(OFF, 0);
-          GPS_LED(GRN);
-          STS_LED_Blink(OFF, 0);
-          STS_LED(GRN);
+  //  Serial.println("Setting up PDP Context:\n  AT+CGDCONT=1,\"IP\",\"wap.cingular\"");
+  //  Serial1.println("AT+CGDCONT=1,\"IP\",\"wap.cingular\"");
+    //LEDBlinker();
+   // delay(1000);
+   // Serial.println("Activating PDP Context:\n  AT+CGACT=1,1");
+    //Serial1.println("AT+CGACT=1,1");
+   // LEDBlinker();
+  //  delay(1000);
+  ///  Serial.println("Configuring TCP connection to TCP Server:\n  AT+SDATACONF=1,\"TCP\",\"173.66.243.160\",20002");
+  //  Serial1.println("AT+SDATACONF=1,\"TCP\",\"173.66.243.160\",20002");
+  //  LEDBlinker();
+ //   delay(1000);
+ //   Serial.println("Starting TCP Connection:\n  AT+SDATASTART=1,1");
+  //  Serial1.println("AT+SDATASTART=1,1");
+  //  LEDBlinker();
+  
+  } else {
+    
+    if(isDisabled > 0) {
+      Serial.println("Tracker DISABLED!");
+      STS_LED_Blink(OFF, 0);
+      STS_LED(RED);
+      delay(1000);
+    } else {
+      if(Serial2.available()) { 
+        
+        int c = Serial2.read();
+        if (GPS.encode(c)) {
+          GPS.f_get_position(&lat, &lon, &fix_age);
+          
+          if (fix_age == TinyGPS::GPS_INVALID_AGE) {
+            Serial.println("No fix detected");
+            GPS_LED_Blink(OFF, 0);
+            GPS_LED(RED);
+            STS_LED_Blink(RED, 0);
+          } else if (fix_age > 5000) {
+            Serial.println("Warning: possible stale data!");
+            GPS_LED_Blink(RED, 0);
+            STS_LED_Blink(GRN, 0);
+          } else {
+            Serial.println("Data is current.");
+            GPS_LED_Blink(OFF, 0);
+            GPS_LED(GRN);
+            STS_LED_Blink(OFF, 0);
+            STS_LED(GRN);
+          }
+  
+          // time in hhmmsscc, date in ddmmyy
+          GPS.get_datetime(&date, &time, &fix_age);
+        
+          alt = GPS.f_altitude();
+            //Serial.println("Lat: %s", lat);
+            //Serial.print(lat);
+            dtostrf(lat,12,8,char * s[255]);            
+            //Serial.println("Lon: %s", lon);
+            //Serial.print(lon);
+            delay(50);
+            ServerData.print("|");
+            ServerData.print(lon,DEC);
+            ServerData.print("|");
+            ServerData.print(alt,DEC);
+            ServerData.print("|");
+            ServerData.print(speed,DEC);
+            ServerData.print("|");
+            ServerData.print(time,DEC);
+            ServerData.print("\"");
+            //Serial.println(ServerData);
+            Serial1.println(ServerData);
+            ServerData.begin();
+          } 
+          delay(250);
         }
-
-        //Get data from the barometer/altimiter
-        //long balt = baro.getHeightCentiMeters();   // <<<<<< CHANGED
-        //  Serial.print("Centimeters: ");
-        //    Serial.print((float)(balt), 2);
-        //      Serial.print(", Feet: ");
-        //        Serial.println((float)(balt) / 30.48, 2);
 
         // time in hhmmsscc, date in ddmmyy
         GPS.get_datetime(&date, &time, &fix_age);
@@ -174,7 +198,21 @@ void loop()
         Serial.println(s);
         dtostrf(lon,12,8,s);  
         Serial.print("$>Lon: ");
-        Serial.println(s);       
+        Serial.println(s);    
+     
+        //Open and connect to remote socket
+        Serial1.println("AT+CGACT=1,1"); 
+        CheckGPRSOK("CGACT: ");  
+        Serial1.println("AT+SDATACONF=1, \"TCP\", \"thebasementserver.com\", 20002");
+        CheckGPRSOK("TCP: ");
+        Serial1.println("AT+SDATASTART=1,1");
+        CheckGPRSOK("SDATASTART: ");
+        Serial1.println("AT+SDATASTATUS=1");
+        CheckGPRSOK("SDATASTATUS: ");    
+        //  +SOCKSTATUS:  1,0,0104,0,0,0  (0 means socket not connected, 0104 means socket is connecting) 
+        //  +SOCKSTATUS:  1,1,0102,0,0,0 (1 means socket connected)   
+       
+        //Build TCP data string 
         ServerData.print("AT+SSTRSEND=1,\"");   
         ServerData.print(TrackerID,DEC);
         ServerData.print("|");
@@ -191,7 +229,13 @@ void loop()
         Serial.print("$>");
         Serial.println(ServerData);
         delay(20);
+        //Send the TCP data string to the server
         Serial1.println(ServerData);
+        CheckGPRSOK("SSTRSEND: ");
+        delay(20);
+        //Close the TCP socket
+        Serial1.println("AT+SDATASTART=1,0");
+        CheckGPRSOK("SDATASTART: ");
         ServerData.begin();
       } 
     }
@@ -201,16 +245,14 @@ void loop()
 
 void CheckGPRSOK(const char* cmd){
   unsigned long t= millis();
-  Serial.println();
-  //Serial.print("$>");
-  Serial.println(cmd);
-
-  while(Serial1.available()<1 && (millis()-t) < 10000){
-  }
-
+  //Serial.println();
+  //Serial.print(cmd);
+  
+  while(Serial1.available()<1 && (millis()-t) < 10000){}
+ 
   while(Serial1.available()>0) {
     recd_char=Serial1.read();    //Get the character from the cellular serial port.
-    Serial.print(recd_char);
+    //Serial.print(recd_char);
     delay(5);
   }
 
@@ -225,7 +267,7 @@ void GetATString(void) {
       c = Serial1.read();
       if (c == -1) {
         at_str[at_str_idx] = '\0';
-        Serial.println(at_str);
+        //Serial.println(at_str);
         return;
       }
       if (c == '\n') {
@@ -233,7 +275,7 @@ void GetATString(void) {
       }
       if ((at_str_idx == BUFFER_SIZE - 1) || (c == '\r')){
         at_str[at_str_idx] = '\0';
-        Serial.println(at_str);
+        //Serial.println(at_str);
         return;
       }
       at_str[at_str_idx++]= c;
@@ -246,8 +288,10 @@ void GetATString(void) {
 
 void ATStringHandler() {
 
-  Serial.println("Waiting for AT resylts...");
-
+  //Serial.println("Wait for AT results.");
+  if(strstr(at_str, "+STCPC：1") != 0) {
+     Serial.println("$>Server discon'd!");
+  }
   if(strstr(at_str, "+SIND: 8") != 0) {
     isGPRSRegistered = 0;
     GSM_LED_Blink(OFF, 0);
@@ -267,6 +311,8 @@ void ATStringHandler() {
     GSM_LED(GRN);
     Serial.println("$>GPRS/GSM Ready For AT Commands...");
   }
+  
+  
 }
 
 //-------------------------------------------------------------
